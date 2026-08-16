@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">practice</string>
+    <string name="hint_type_note">Type a new note…</string>
+    <string name="btn_add">Add</string>
+    <string name="note_deleted">Note Deleted</string>
+    <string name="error_empty_note">Please enter a note</string>
+    <string name="error_save_failed">Failed to save note</string>
+    <string name="error_delete_failed">Failed to delete note</string>
 </resources>

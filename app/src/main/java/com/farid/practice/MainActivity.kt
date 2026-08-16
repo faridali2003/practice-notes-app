@@ -5,58 +5,51 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var database: AppDatabase
+    private lateinit var viewModel: NoteViewModel
     private lateinit var adapter: NotesAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        database = AppDatabase.getDatabase(this)
+        viewModel = ViewModelProvider(this)[NoteViewModel::class.java]
 
         val etNote = findViewById<EditText>(R.id.etNote)
         val btnAdd = findViewById<Button>(R.id.btnAdd)
         val rvNotes = findViewById<RecyclerView>(R.id.rvNotes)
 
-        adapter = NotesAdapter(emptyList()) { noteToDelete ->
-            lifecycleScope.launch(Dispatchers.IO) {
-                database.noteDao().deleteNote(noteToDelete)
-                loadNotes()
-            }
-            Toast.makeText(this@MainActivity, "Note Deleted", Toast.LENGTH_SHORT).show()
+        adapter = NotesAdapter { noteToDelete ->
+            viewModel.deleteNote(noteToDelete)
         }
         rvNotes.adapter = adapter
 
         btnAdd.setOnClickListener {
-            val text = etNote.text.toString()
-            if (text.isNotBlank()) {
-                val note = Note(text)
-                lifecycleScope.launch(Dispatchers.IO) {
-                    database.noteDao().insertNote(note)
-                    loadNotes()
-                }
-                etNote.text.clear()
-            } else {
-                Toast.makeText(this, "Please enter a note", Toast.LENGTH_SHORT).show()
+            viewModel.insertNote(etNote.text.toString())
+            etNote.text.clear()
+        }
+
+        lifecycleScope.launch {
+            viewModel.allNotes.collect { notes ->
+                adapter.submitList(notes)
             }
         }
 
-        loadNotes()
-    }
-
-    private fun loadNotes() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val notesList = database.noteDao().getAllNotes()
-            withContext(Dispatchers.Main) {
-                adapter.updateNotes(notesList)
+        lifecycleScope.launch {
+            viewModel.uiEvents.collect { event ->
+                when (event) {
+                    is NoteViewModel.UiEvent.NoteSaved -> { }
+                    is NoteViewModel.UiEvent.NoteDeleted ->
+                        Toast.makeText(this@MainActivity, getString(R.string.note_deleted), Toast.LENGTH_SHORT).show()
+                    is NoteViewModel.UiEvent.ShowError ->
+                        Toast.makeText(this@MainActivity, event.message, Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

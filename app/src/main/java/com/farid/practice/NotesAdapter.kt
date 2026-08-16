@@ -4,12 +4,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 
 class NotesAdapter(
-    private var notes: List<Note>,
     private val onNoteLongClicked: (Note) -> Unit
-) : RecyclerView.Adapter<NotesAdapter.NoteViewHolder>() {
+) : ListAdapter<Note, NotesAdapter.NoteViewHolder>(NoteDiffCallback()) {
 
     class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvNoteContent: TextView = view.findViewById(R.id.tvNoteContent)
@@ -22,19 +23,22 @@ class NotesAdapter(
     }
 
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
-        val note = notes[position]
+        val note = getItem(position)
         holder.tvNoteContent.text = note.text
-        
+
         holder.itemView.setOnLongClickListener {
             onNoteLongClicked(note)
             true
         }
     }
 
-    override fun getItemCount() = notes.size
+    class NoteDiffCallback : DiffUtil.ItemCallback<Note>() {
+        override fun areItemsTheSame(oldItem: Note, newItem: Note): Boolean {
+            return oldItem.id == newItem.id
+        }
 
-    fun updateNotes(newNotes: List<Note>) {
-        this.notes = newNotes
-        notifyDataSetChanged()
+        override fun areContentsTheSame(oldItem: Note, newItem: Note): Boolean {
+            return oldItem.id == newItem.id && oldItem.text == newItem.text
+        }
     }
 }
